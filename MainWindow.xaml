@@ -1,0 +1,204 @@
+﻿<Window x:Class="Calculator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FocusCalc" Height="520" Width="360"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="CanResize"
+        AllowsTransparency="True" Background="Transparent"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <!-- macOS-style traffic-light window buttons -->
+        <Style x:Key="TrafficBtn" TargetType="Button">
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Width="16" Height="16">
+                            <Ellipse Fill="{TemplateBinding Tag}" Stroke="#33000000" StrokeThickness="1"/>
+                            <Path x:Name="glyph"
+                                  Stroke="White" StrokeThickness="1.7"
+                                  Visibility="Collapsed"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Content}"
+                                  Stretch="Uniform" Width="8" Height="8"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="glyph" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Calculator button styles -->
+        <Style x:Key="RoundButton" TargetType="Button">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="NumBg"  Color="#2C2C2E"/>
+        <SolidColorBrush x:Key="FuncBg" Color="#A5A5A5"/>
+        <SolidColorBrush x:Key="OpBg"   Color="#FF9F0A"/>
+
+        <Style x:Key="NumBtn"  BasedOn="{StaticResource RoundButton}" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource NumBg}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style x:Key="FuncBtn" BasedOn="{StaticResource RoundButton}" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource FuncBg}"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style x:Key="OpBtn"   BasedOn="{StaticResource RoundButton}" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource OpBg}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Card -->
+    <Border CornerRadius="16" Background="#E61C1C1E" BorderBrush="#3A3A3C" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.35"/>
+        </Border.Effect>
+
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title bar -->
+            <Border x:Name="TitleBar"
+                    Grid.Row="0"
+                    Background="Transparent"
+                    Padding="6"
+                    Margin="0,0,0,8">
+            <!-- SINGLE-CELL GRID: overlay children -->
+            <Grid MouseDown="TitleBar_MouseDown">
+                <!-- Centered title, independent of buttons -->
+                <TextBlock Text="FocusCalc"
+                        Foreground="White" FontWeight="SemiBold" FontSize="13"
+                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"/>
+
+                <!-- Left traffic-light buttons -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                <Button Style="{StaticResource TrafficBtn}" Tag="#FF605C" ToolTip="Close"
+                        Click="BtnClose_Click"
+                        Content="M0,0 L8,8 M8,0 L0,8"/>
+                <Button Style="{StaticResource TrafficBtn}" Tag="#FFBD44" ToolTip="Minimize"
+                        Click="BtnMin_Click" Margin="8,0,0,0"
+                        Content="M0,4 L8,4"/>
+                <Button Style="{StaticResource TrafficBtn}" Tag="#00CA4E" ToolTip="Maximize / Restore"
+                        Click="BtnMax_Click" Margin="8,0,0,0"
+                        Content="M0,0 L8,0 L8,8 L0,8 Z"/>
+                </StackPanel>
+
+
+            </Grid>
+            </Border>
+
+
+            <!-- Main content (named!) -->
+            <Grid x:Name="MainContent" Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Display -->
+                <Border CornerRadius="14" Background="#22FFFFFF" Padding="12" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="History" Grid.Row="0"
+                                   Text="" Opacity="0.6" FontSize="16" Foreground="White"
+                                   TextAlignment="Right" HorizontalAlignment="Stretch" Margin="0,2,0,2"/>
+
+                        <TextBlock x:Name="Display" Grid.Row="1"
+                                   Text="0" FontSize="44" FontWeight="Bold" Foreground="White"
+                                   TextAlignment="Right" HorizontalAlignment="Stretch"/>
+                    </Grid>
+                </Border>
+
+                <!-- Keypad -->
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Row 0 -->
+                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource FuncBtn}" Content="C" Click="Clear_Click"/>
+                    <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource FuncBtn}" Content="±" Click="Sign_Click"/>
+                    <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource FuncBtn}" Content="%" Click="Percent_Click"/>
+                    <Button Grid.Row="0" Grid.Column="3" Style="{StaticResource OpBtn}"   Content="÷" Click="Op_Click"/>
+
+                    <!-- Row 1 -->
+                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource NumBtn}" Content="7" Click="Digit_Click"/>
+                    <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource NumBtn}" Content="8" Click="Digit_Click"/>
+                    <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource NumBtn}" Content="9" Click="Digit_Click"/>
+                    <Button Grid.Row="1" Grid.Column="3" Style="{StaticResource OpBtn}"   Content="×" Click="Op_Click"/>
+
+                    <!-- Row 2 -->
+                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource NumBtn}" Content="4" Click="Digit_Click"/>
+                    <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource NumBtn}" Content="5" Click="Digit_Click"/>
+                    <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource NumBtn}" Content="6" Click="Digit_Click"/>
+                    <Button Grid.Row="2" Grid.Column="3" Style="{StaticResource OpBtn}"   Content="−" Click="Op_Click"/>
+
+                    <!-- Row 3 -->
+                    <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource NumBtn}" Content="1" Click="Digit_Click"/>
+                    <Button Grid.Row="3" Grid.Column="1" Style="{StaticResource NumBtn}" Content="2" Click="Digit_Click"/>
+                    <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource NumBtn}" Content="3" Click="Digit_Click"/>
+                    <Button Grid.Row="3" Grid.Column="3" Style="{StaticResource OpBtn}"   Content="+" Click="Op_Click"/>
+
+                    <!-- Row 4 -->
+                    <Button Grid.Row="4" Grid.Column="0" Style="{StaticResource NumBtn}" Content="0" Click="Digit_Click"/>
+                    <Button Grid.Row="4" Grid.Column="1" Style="{StaticResource NumBtn}" Content="History" Click="HistoryButton_Click"
+                            FontWeight="SemiBold" FontSize="14" Cursor="Hand" ToolTip="Open/Close history (Ctrl+H)"/>
+                    <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource NumBtn}" Content="." Click="Dot_Click"/>
+                    <Button Grid.Row="4" Grid.Column="3" Style="{StaticResource OpBtn}"  Content="=" Click="Equals_Click"/>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
